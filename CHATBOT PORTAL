@@ -1,0 +1,287 @@
+import tkinter as tk
+from tkinter import ttk, scrolledtext
+import datetime
+import random
+import re
+
+class EducationalChatbot:
+    def __init__(self):
+        # Initialize the main window
+        self.root = tk.Tk()
+        self.root.title("Educational Python Chatbot")
+        self.root.geometry("700x600")
+        self.root.configure(bg='#f0f0f0')
+        
+        # Chatbot responses database
+        self.responses = {
+            'greeting': [
+                "Hello! I'm your educational chatbot. How can I help you today?",
+                "Hi there! Ready to learn something new?",
+                "Welcome! I'm here to help with your questions.",
+                "Hey! What would you like to know?"
+            ],
+            'how_are_you': [
+                "I'm doing great! Thanks for asking. How are you?",
+                "I'm functioning perfectly! How about you?",
+                "All systems running smoothly! How's your day going?"
+            ],
+            'python': [
+                "Python is an amazing programming language! It's great for beginners.",
+                "Python is powerful yet simple. Perfect for learning programming concepts!",
+                "I love Python! It's readable, versatile, and has a great community."
+            ],
+            'programming': [
+                "Programming is like solving puzzles! It's creative and logical.",
+                "Coding is a superpower in today's digital world!",
+                "Programming teaches problem-solving skills that apply everywhere."
+            ],
+            'school': [
+                "School is where you build the foundation for your future!",
+                "Learning new things every day makes you grow stronger!",
+                "Education opens doors to amazing opportunities!"
+            ],
+            'help': [
+                "I can chat about programming, school, Python, or just have a friendly conversation!",
+                "Try asking me about Python, programming concepts, or just say hello!",
+                "I'm here to help! Ask me anything about coding or school."
+            ],
+            'default': [
+                "That's interesting! Tell me more.",
+                "I'm still learning about that topic. What do you think?",
+                "Hmm, that's a good point! Can you elaborate?",
+                "I'd love to hear your thoughts on that!",
+                "That sounds fascinating! What else can you share?"
+            ],
+            'goodbye': [
+                "Goodbye! Keep coding and learning!",
+                "See you later! Remember to practice your programming!",
+                "Bye! Have a great day learning new things!",
+                "Take care! Keep exploring the world of technology!"
+            ],
+            'time': [
+                f"The current time is {datetime.datetime.now().strftime('%H:%M:%S')}",
+                f"Right now it's {datetime.datetime.now().strftime('%I:%M %p')}",
+                f"The time is {datetime.datetime.now().strftime('%H:%M on %B %d, %Y')}"
+            ],
+            'math': [
+                "Math is the language of the universe! It's everywhere in programming.",
+                "Mathematics and programming go hand in hand!",
+                "Math helps us solve complex problems in elegant ways!"
+            ]
+        }
+        
+        # Keywords for pattern matching
+        self.patterns = {
+            'greeting': ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon'],
+            'how_are_you': ['how are you', 'how do you feel', 'how are things'],
+            'python': ['python', 'coding in python', 'python programming'],
+            'programming': ['programming', 'coding', 'code', 'software', 'development'],
+            'school': ['school', 'class', 'teacher', 'student', 'homework', 'assignment'],
+            'help': ['help', 'what can you do', 'commands', 'features'],
+            'goodbye': ['bye', 'goodbye', 'see you', 'farewell', 'exit', 'quit'],
+            'time': ['time', 'what time', 'current time', 'clock'],
+            'math': ['math', 'mathematics', 'calculation', 'numbers', 'algebra']
+        }
+        
+        # Auto-response settings
+        self.auto_response_enabled = tk.BooleanVar(value=False)
+        self.auto_response_delay = 3000  # 3 seconds in milliseconds
+        self.auto_timer = None
+        
+        self.setup_gui()
+        
+    def setup_gui(self):
+        # Title
+        title_label = tk.Label(
+            self.root, 
+            text="🤖 Educational Python Chatbot",
+            font=('Arial', 18, 'bold'),
+            bg='#f0f0f0',
+            fg='#2c3e50'
+        )
+        title_label.pack(pady=10)
+        
+        # Chat display area
+        self.chat_frame = tk.Frame(self.root, bg='white', relief='sunken', bd=2)
+        self.chat_frame.pack(padx=20, pady=10, fill='both', expand=True)
+        
+        self.chat_display = scrolledtext.ScrolledText(
+            self.chat_frame,
+            width=70,
+            height=20,
+            font=('Consolas', 10),
+            bg='#ffffff',
+            fg='#2c3e50',
+            wrap='word',
+            state='disabled'
+        )
+        self.chat_display.pack(padx=10, pady=10, fill='both', expand=True)
+        
+        # Input frame
+        input_frame = tk.Frame(self.root, bg='#f0f0f0')
+        input_frame.pack(padx=20, pady=(0, 10), fill='x')
+        
+        # Message input
+        tk.Label(input_frame, text="Your message:", bg='#f0f0f0', font=('Arial', 10)).pack(anchor='w')
+        
+        self.message_entry = tk.Entry(
+            input_frame,
+            font=('Arial', 12),
+            width=50
+        )
+        self.message_entry.pack(side='left', padx=(0, 10), pady=5, fill='x', expand=True)
+        self.message_entry.bind('<Return>', self.send_message_event)
+        
+        # Send button
+        send_button = tk.Button(
+            input_frame,
+            text="Send",
+            command=self.send_message,
+            bg='#3498db',
+            fg='white',
+            font=('Arial', 10, 'bold'),
+            cursor='hand2'
+        )
+        send_button.pack(side='right', pady=5)
+        
+        # Control frame
+        control_frame = tk.Frame(self.root, bg='#f0f0f0')
+        control_frame.pack(padx=20, pady=(0, 10), fill='x')
+        
+        # Auto-response checkbox
+        auto_checkbox = tk.Checkbutton(
+            control_frame,
+            text="Enable Auto-Response (responds automatically after 3 seconds)",
+            variable=self.auto_response_enabled,
+            bg='#f0f0f0',
+            font=('Arial', 9)
+        )
+        auto_checkbox.pack(side='left')
+        
+        # Clear chat button
+        clear_button = tk.Button(
+            control_frame,
+            text="Clear Chat",
+            command=self.clear_chat,
+            bg='#e74c3c',
+            fg='white',
+            font=('Arial', 9),
+            cursor='hand2'
+        )
+        clear_button.pack(side='right', padx=(10, 0))
+        
+        # Status bar
+        self.status_var = tk.StringVar(value="Ready to chat! Try saying 'hello' or asking about Python!")
+        status_bar = tk.Label(
+            self.root,
+            textvariable=self.status_var,
+            bg='#34495e',
+            fg='white',
+            font=('Arial', 9),
+            anchor='w'
+        )
+        status_bar.pack(fill='x', side='bottom')
+        
+        # Welcome message
+        self.add_message("Chatbot", "Welcome to the Educational Python Chatbot! 🐍\nI'm here to help you learn about programming. Try asking me about Python, coding, or just say hello!")
+        
+    def add_message(self, sender, message):
+        """Add a message to the chat display"""
+        self.chat_display.config(state='normal')
+        
+        timestamp = datetime.datetime.now().strftime('%H:%M:%S')
+        
+        if sender == "You":
+            prefix = f"[{timestamp}] 🧑 You: "
+            self.chat_display.insert(tk.END, prefix, 'user')
+        else:
+            prefix = f"[{timestamp}] 🤖 Bot: "
+            self.chat_display.insert(tk.END, prefix, 'bot')
+            
+        self.chat_display.insert(tk.END, f"{message}\n\n")
+        
+        # Configure text tags for styling
+        self.chat_display.tag_config('user', foreground='#2980b9', font=('Consolas', 10, 'bold'))
+        self.chat_display.tag_config('bot', foreground='#27ae60', font=('Consolas', 10, 'bold'))
+        
+        self.chat_display.config(state='disabled')
+        self.chat_display.see(tk.END)
+        
+    def get_bot_response(self, user_message):
+        """Generate bot response based on user input"""
+        user_message = user_message.lower().strip()
+        
+        # Check patterns for appropriate response
+        for category, keywords in self.patterns.items():
+            for keyword in keywords:
+                if keyword in user_message:
+                    return random.choice(self.responses[category])
+        
+        # Special cases
+        if any(word in user_message for word in ['name', 'who are you']):
+            return "I'm an educational chatbot created to help students learn programming! My name is EduBot."
+            
+        if 'thank' in user_message:
+            return "You're very welcome! I'm happy to help you learn!"
+            
+        if any(word in user_message for word in ['age', 'old']):
+            return "I'm as old as this Python program - created just for your learning experience!"
+            
+        # Default response
+        return random.choice(self.responses['default'])
+        
+    def send_message_event(self, event):
+        """Handle Enter key press"""
+        self.send_message()
+        
+    def send_message(self):
+        """Send user message and get bot response"""
+        user_message = self.message_entry.get().strip()
+        
+        if not user_message:
+            return
+            
+        # Add user message to chat
+        self.add_message("You", user_message)
+        
+        # Clear input field
+        self.message_entry.delete(0, tk.END)
+        
+        # Cancel any pending auto-response
+        if self.auto_timer:
+            self.root.after_cancel(self.auto_timer)
+            self.auto_timer = None
+            
+        # Get and display bot response
+        if self.auto_response_enabled.get():
+            self.status_var.set("Auto-response will appear in 3 seconds...")
+            self.auto_timer = self.root.after(self.auto_response_delay, 
+                                            lambda: self.send_bot_response(user_message))
+        else:
+            self.send_bot_response(user_message)
+            
+    def send_bot_response(self, user_message):
+        """Generate and send bot response"""
+        bot_response = self.get_bot_response(user_message)
+        self.add_message("Chatbot", bot_response)
+        self.status_var.set("Ready for your next message!")
+        self.auto_timer = None
+        
+    def clear_chat(self):
+        """Clear the chat display"""
+        self.chat_display.config(state='normal')
+        self.chat_display.delete(1.0, tk.END)
+        self.chat_display.config(state='disabled')
+        self.add_message("Chatbot", "Chat cleared! Ready for a fresh conversation! 🎉")
+        
+    def run(self):
+        """Start the chatbot application"""
+        self.message_entry.focus()
+        self.root.mainloop()
+
+if __name__ == "__main__":
+    # Create and run the chatbot
+    chatbot = EducationalChatbot()
+    print("Starting Educational Python Chatbot...")
+    print("This chatbot demonstrates key programming concepts for high school students!")
+    chatbot.run()
